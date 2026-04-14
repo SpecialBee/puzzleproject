@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c7f58fb8afd0d94391e5cb8e5970147, type: 3}
-  m_Name: Tile_Attack_Red_1
+  m_Name: Tile_Armor_Blue_1
   m_EditorClassIdentifier: 
-  tileType: 0
+  tileType: 1
   statValue: 1
-  tilePrefab: {fileID: 7797821306479312163, guid: a23635ec97686cc4580426bc4a52a594, type: 3}
+  tilePrefab: {fileID: 1884183630290513019, guid: ca83cb0cd35512047a3eca8d09ead5d8, type: 3}

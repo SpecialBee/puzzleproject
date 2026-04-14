@@ -22,5 +22,5 @@ public class TileData : ScriptableObject
     public int statValue;
 
     [Tooltip("화면에 보여질 타일 이미지를 넣는 곳입니다.")]
-    public Sprite tileSprite;
+    public GameObject tilePrefab;
 }
