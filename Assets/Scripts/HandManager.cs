@@ -42,11 +42,24 @@ public class HandManager : MonoBehaviour
     // [추가된 부분] UI 버튼(턴 종료 버튼)을 클릭했을 때 유니티가 실행해 줄 함수입니다.
     public void OnEndTurnButtonClicked()
     {
-        Debug.Log("턴 종료! 남은 패를 버리고 새로운 5장을 드로우합니다.");
+        Debug.Log("--- 턴 종료! 전투 페이즈 시작 ---");
 
-        // (나중에 이곳에 몬스터가 공격하는 로직이나, 턴 종료 시 발동하는 효과 등을 넣을 수 있습니다.)
+        if (MonsterManager.Instance != null && PlayerManager.Instance != null)
+        {
+            // 1. 플레이어가 모아둔 공격력으로 몬스터를 먼저 때립니다!
+            MonsterManager.Instance.TakeDamage(PlayerManager.Instance.attack);
 
-        // 남은 패를 비우고 5장을 새로 뽑는 함수를 호출합니다.
+            // 2. 몬스터가 살아있다면 플레이어에게 반격합니다!
+            if (MonsterManager.Instance.currentHp > 0)
+            {
+                PlayerManager.Instance.TakeDamage(MonsterManager.Instance.attackDamage);
+            }
+
+            // 3. 전투가 한 차례 끝났으니 플레이어의 일회성 스탯(공/방)을 0으로 초기화합니다.
+            PlayerManager.Instance.ResetTurnStats();
+        }
+
+        // 4. 남은 패를 비우고 5장을 새로 뽑습니다.
         DrawTiles(5);
     }
 }
