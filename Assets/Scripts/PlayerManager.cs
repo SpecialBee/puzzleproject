@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+﻿using UnityEngine.SceneManagement;
 using TMPro; // 글자를 다루기 위해 필요한 마법 주문입니다.
+using UnityEngine;
 
 public class PlayerManager : MonoBehaviour
 {
@@ -16,6 +17,9 @@ public class PlayerManager : MonoBehaviour
     public TextMeshProUGUI attackText;
     public TextMeshProUGUI defenseText;
     public TextMeshProUGUI manaText;
+
+    [Header("게임 오버 UI")]
+    public GameObject gameOverPanel; // 게임 오버 시 띄울 팝업창
 
     void Awake()
     {
@@ -74,8 +78,16 @@ public class PlayerManager : MonoBehaviour
 
         if (hp == 0)
         {
-            Debug.Log("💀 플레이어 사망... (패배 로직 발동 예정)");
+            Debug.Log("💀 플레이어 사망... 게임 오버!");
+            // [추가된 부분] 게임 오버 팝업을 켭니다.
+            if (gameOverPanel != null) gameOverPanel.SetActive(true);
         }
+    }
+
+    public void RestartGame()
+    {
+        // 현재 활성화된 씬(게임 화면)을 처음부터 다시 로드합니다.
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     // [추가할 함수 2] 턴이 끝났을 때 스탯을 0으로 되돌리는 함수

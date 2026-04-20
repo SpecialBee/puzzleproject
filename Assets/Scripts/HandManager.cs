@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class HandManager : MonoBehaviour
 {
+    // [이 부분 추가!] 다른 스크립트에서 HandManager.Instance 로 부를 수 있게 합니다.
+    public static HandManager Instance;
+
     [Header("타일 뽑기 설정")]
     [Tooltip("게임에 등장할 모든 타일 데이터(ScriptableObject)를 넣어주세요.")]
     public List<TileData> availableTiles;
@@ -42,6 +45,14 @@ public class HandManager : MonoBehaviour
     // [추가된 부분] UI 버튼(턴 종료 버튼)을 클릭했을 때 유니티가 실행해 줄 함수입니다.
     public void OnEndTurnButtonClicked()
     {
+        // [추가] HandArea에 자식(타일)이 남아있는지 확인합니다.
+        if (handArea.childCount > 0)
+        {
+            Debug.LogWarning("모든 타일을 판에 배치해야 턴을 마칠 수 있습니다!");
+            // 여기서 유저에게 알림 팝업을 띄우거나 버튼을 흔드는 연출을 추가하면 더 좋습니다.
+            return;
+        }
+
         Debug.Log("--- 턴 종료! 전투 페이즈 시작 ---");
 
         if (MonsterManager.Instance != null && PlayerManager.Instance != null)

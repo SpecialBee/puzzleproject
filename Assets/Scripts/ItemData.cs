@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 // 타일 데이터를 만들 때처럼, 우클릭 메뉴에서 쉽게 아이템을 찍어낼 수 있게 해줍니다.
@@ -17,7 +15,10 @@ public class ItemData : ScriptableObject
     [TextArea]
     public string description; // 아이템 설명
     public ItemType itemType; // 아이템 종류
-    public Sprite itemIcon; // 아이템 아이콘 이미지
+
+    // [수정된 부분] Sprite 대신 GameObject(프리팹)를 받도록 변경했습니다.
+    [Tooltip("화면에 보여질 아이템 UI 프리팹을 넣는 곳입니다.")]
+    public GameObject itemPrefab;
 
     [Header("아이템 효과 수치")]
     [Tooltip("패시브일 경우 최대 체력 증가량, 액티브일 경우 즉시 회복량 등으로 사용")]
