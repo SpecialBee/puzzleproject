@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class HandManager : MonoBehaviour
 {
-    // [이 부분 추가!] 다른 스크립트에서 HandManager.Instance 로 부를 수 있게 합니다.
     public static HandManager Instance;
 
     [Header("타일 뽑기 설정")]
@@ -13,6 +12,14 @@ public class HandManager : MonoBehaviour
 
     [Tooltip("뽑힌 타일들이 생성될 화면 하단의 투명 상자 (HandArea)")]
     public Transform handArea;
+
+    // [추가] 턴이 진행되는 동안 버튼 중복 클릭을 막기 위한 자물쇠입니다.
+    private bool isTurnProcessing = false;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Start()
     {
@@ -42,35 +49,70 @@ public class HandManager : MonoBehaviour
         }
     }
 
-    // [추가된 부분] UI 버튼(턴 종료 버튼)을 클릭했을 때 유니티가 실행해 줄 함수입니다.
+    // UI 버튼(턴 종료 버튼)을 클릭했을 때 유니티가 실행해 줄 함수입니다.
     public void OnEndTurnButtonClicked()
     {
-        // [추가] HandArea에 자식(타일)이 남아있는지 확인합니다.
+        // 이미 턴이 진행 중이라면 버튼을 눌러도 무시합니다.
+        if (isTurnProcessing) return;
+
+        // HandArea에 자식(타일)이 남아있는지 확인합니다.
         if (handArea.childCount > 0)
         {
             Debug.LogWarning("모든 타일을 판에 배치해야 턴을 마칠 수 있습니다!");
-            // 여기서 유저에게 알림 팝업을 띄우거나 버튼을 흔드는 연출을 추가하면 더 좋습니다.
             return;
         }
 
-        Debug.Log("--- 턴 종료! 전투 페이즈 시작 ---");
+        // 순차적인 턴 흐름(코루틴)을 시작합니다!
+        StartCoroutine(TurnPhaseSequence());
+    }
 
+    // ----------------------------------------------------
+    // [핵심] 시간의 흐름을 두고 턴을 순차적으로 진행하는 모듈
+    // ----------------------------------------------------
+    private IEnumerator TurnPhaseSequence()
+    {
+        isTurnProcessing = true; // 턴 진행 잠금
+
+        // --- 페이즈 1: 플레이어 턴 ---
+        Debug.Log("--- [페이즈 1: 플레이어 턴] ---");
         if (MonsterManager.Instance != null && PlayerManager.Instance != null)
         {
-            // 1. 플레이어가 모아둔 공격력으로 몬스터를 먼저 때립니다!
             MonsterManager.Instance.TakeDamage(PlayerManager.Instance.attack);
-
-            // 2. 몬스터가 살아있다면 플레이어에게 반격합니다!
-            if (MonsterManager.Instance.currentHp > 0)
-            {
-                PlayerManager.Instance.TakeDamage(MonsterManager.Instance.attackDamage);
-            }
-
-            // 3. 전투가 한 차례 끝났으니 플레이어의 일회성 스탯(공/방)을 0으로 초기화합니다.
-            PlayerManager.Instance.ResetTurnStats();
         }
 
-        // 4. 남은 패를 비우고 5장을 새로 뽑습니다.
-        DrawTiles(5);
+        // 몬스터가 죽었다면 보상 팝업이 뜨므로, 여기서 턴 시퀀스를 즉시 중단합니다.
+        // (나머지 초기화 및 드로우는 보상 선택 후 RewardManager가 알아서 합니다)
+        if (MonsterManager.Instance.currentHp <= 0)
+        {
+            isTurnProcessing = false;
+            yield break;
+        }
+
+        yield return new WaitForSeconds(0.5f); // 0.5초 대기 (타격감 및 흐름 분리)
+
+        // --- 페이즈 2: 몬스터 턴 ---
+        Debug.Log("--- [페이즈 2: 몬스터 턴] ---");
+        if (MonsterManager.Instance != null)
+        {
+            MonsterManager.Instance.PerformMonsterTurn(); // 데미지 + 기믹 발동
+        }
+
+        // 몬스터 공격으로 플레이어가 죽었다면(게임오버) 역시 중단합니다.
+        if (PlayerManager.Instance.hp <= 0)
+        {
+            isTurnProcessing = false;
+            yield break;
+        }
+
+        yield return new WaitForSeconds(0.5f); // 0.5초 대기
+
+        // --- 페이즈 3: 턴 종료 및 결산 ---
+        Debug.Log("--- [페이즈 3: 턴 결산 및 종료] ---");
+
+        PlayerManager.Instance.ResetTurnStats(); // 내 공/방 스탯 일회성 초기화
+        GridManager.Instance.ProcessTurnEndForGrid(); // 보드판 기믹 턴수 차감 (예: 잠금 지속시간 -1)
+        DrawTiles(5); // 새로운 패 지급
+
+        isTurnProcessing = false; // 턴 진행 잠금 해제, 이제 다시 타일을 놓을 수 있습니다.
     }
 }
