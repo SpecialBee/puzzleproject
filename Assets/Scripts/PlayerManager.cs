@@ -90,24 +90,6 @@ public class PlayerManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    // ----------------------------------------------------
-    // [추가] 마나 스킬용 자원 소모 함수
-    // ----------------------------------------------------
-    public bool UseMana(int amount)
-    {
-        // 현재 마나가 충분하다면 마나를 깎고 true를 반환합니다.
-        if (mana >= amount)
-        {
-            mana -= amount;
-            UpdateUI(); // 변경된 마나 UI 갱신
-            return true;
-        }
-
-        // 마나가 부족하면 튕겨냅니다.
-        return false;
-    }
-
-
     // [추가할 함수 2] 턴이 끝났을 때 스탯을 0으로 되돌리는 함수
     public void ResetTurnStats()
     {
