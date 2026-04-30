@@ -1,13 +1,14 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro; // 글자를 다루기 위해 필요한 마법 주문입니다.
+using TMPro;
 
 public class PlayerManager : MonoBehaviour
 {
+    // [수정 - S-01] 싱글톤 중복 체크 추가
     public static PlayerManager Instance;
 
     [Header("플레이어 스탯")]
-    public int maxHp = 100; // 보상 한도치 및 연동을 위해 추가
+    public int maxHp = 100;
     public int hp = 100;
     public int attack = 0;
     public int defense = 0;
@@ -20,54 +21,60 @@ public class PlayerManager : MonoBehaviour
     public TextMeshProUGUI manaText;
 
     [Header("UI 패널 연결")]
-    public GameObject victoryPanel;  // 승리 시 띄울 팝업창 (아이템 3개 포함)
-    public GameObject gameOverPanel; // 죽었을 때 띄울 팝업창
+    public GameObject victoryPanel;
+    public GameObject gameOverPanel;
 
     void Awake()
     {
-        Instance = this;
+        // [수정 - S-01] 씬 재로드 시 인스턴스 중복 방지
+        if (Instance == null) { Instance = this; }
+        else { Destroy(gameObject); return; }
     }
 
     void Start()
     {
-        // [추가됨] 전투 시작 시, DataManager 금고에서 내 실제 스탯을 꺼내옵니다!
         if (DataManager.Instance != null)
         {
             hp = DataManager.Instance.currentHp;
             maxHp = DataManager.Instance.maxHp;
-            attack = DataManager.Instance.baseAttack; // 보상으로 얻은 기본 공격력
+            attack = DataManager.Instance.baseAttack;
+            defense = DataManager.Instance.baseDefense; // [추가 - ①] 영구 방어력 복원
             mana = DataManager.Instance.currentMana;
         }
         else
         {
-            // 씬을 거치지 않고 바로 전투 씬을 단독 테스트할 때를 위한 기본값
             hp = maxHp;
         }
 
-        UpdateUI(); // 게임 시작 시 글자를 한 번 새로고침 합니다.
+        UpdateUI();
     }
 
-    // 타일이 놓이거나 빙고가 터졌을 때 불려갈 함수입니다.
+    // 타일 배치 또는 빙고 보너스 시 스탯 증가
     public void AddStat(TileData.TileType type, int value)
     {
         switch (type)
         {
-            case TileData.TileType.Attack:
-                attack += value;
-                break;
-            case TileData.TileType.Defense:
-                defense += value;
-                break;
-            case TileData.TileType.Mana:
-                mana += value;
-                break;
+            case TileData.TileType.Attack: attack += value; break;
+            case TileData.TileType.Defense: defense += value; break;
+            case TileData.TileType.Mana: mana += value; break;
         }
-
-        UpdateUI(); // 스탯이 올랐으니 화면의 글자도 바로바로 바꿔줍니다.
-        Debug.Log($"스탯 상승! 현재 공격력:{attack}, 방어력:{defense}, 마나:{mana}");
+        UpdateUI();
+        Debug.Log($"스탯 상승! 공격력:{attack} 방어력:{defense} 마나:{mana}");
     }
 
-    // 화면의 텍스트를 최신 상태로 바꿔주는 함수
+    // [추가 - S-02] 보드 축소 기믹 스탯 역산용. AddStat의 반대 함수.
+    public void RemoveStat(TileData.TileType type, int value)
+    {
+        switch (type)
+        {
+            case TileData.TileType.Attack: attack = Mathf.Max(0, attack - value); break;
+            case TileData.TileType.Defense: defense = Mathf.Max(0, defense - value); break;
+            case TileData.TileType.Mana: mana = Mathf.Max(0, mana - value); break;
+        }
+        UpdateUI();
+        Debug.Log($"스탯 역산! 공격력:{attack} 방어력:{defense} 마나:{mana}");
+    }
+
     public void UpdateUI()
     {
         if (hpText != null) hpText.text = $"HP : {hp} / {maxHp}";
@@ -76,80 +83,58 @@ public class PlayerManager : MonoBehaviour
         if (manaText != null) manaText.text = $"MANA : {mana}";
     }
 
-    // 몬스터에게 맞았을 때 데미지를 계산하는 함수 (기존 방어력 로직 + 새 사망 로직)
     public void TakeDamage(int enemyAttack)
     {
-        // 1. 방어력으로 데미지를 먼저 깎아냅니다.
-        int actualDamage = enemyAttack - defense;
-
-        // 2. 방어력이 적의 공격력보다 높으면 데미지는 0이 됩니다.
-        if (actualDamage < 0) actualDamage = 0;
-
-        // 3. 실제 데미지만큼 플레이어의 체력을 깎습니다.
+        int actualDamage = Mathf.Max(0, enemyAttack - defense);
         hp -= actualDamage;
         if (hp <= 0)
         {
             hp = 0;
-            GameOver(); // 체력이 0이 되면 게임 오버 실행!
+            GameOver();
         }
-
         UpdateUI();
-        Debug.Log($"[전투] 플레이어가 {actualDamage}의 데미지를 입었습니다! (적 공격력:{enemyAttack} - 내 방어력:{defense}) 남은 체력: {hp}");
+        Debug.Log($"[전투] 플레이어 피해 {actualDamage} (적:{enemyAttack} - 방어:{defense}) 잔여 HP:{hp}");
     }
 
-    // 턴이 끝났을 때 스탯을 기본치로 되돌리는 함수
+    // 턴 종료 시 일회성 스탯 초기화
     public void ResetTurnStats()
     {
-        // 영구 공격력(baseAttack)을 얻었다면 0이 아니라 해당 수치로 돌아가야 합니다.
-        if (DataManager.Instance != null) attack = DataManager.Instance.baseAttack;
-        else attack = 0;
-
-        defense = 0;
-        // 마나는 스킬을 모아서 쓰기 위해 초기화하지 않고 남겨둡니다.
-
+        // [수정 - ①] attack은 baseAttack으로, defense는 baseDefense로 복원
+        if (DataManager.Instance != null)
+        {
+            attack = DataManager.Instance.baseAttack;
+            defense = DataManager.Instance.baseDefense; // [추가 - ①] 영구 방어력 기준값으로 복원
+        }
+        else
+        {
+            // [수정 - D-05] DataManager 없을 때 현재값 유지 (0으로 날리지 않음)
+            // attack, defense 그대로 유지
+        }
         UpdateUI();
     }
 
-    // ----------------------------------------------------
-    // 게임 오버 및 씬 이동 관련 함수들
-    // ----------------------------------------------------
     private void GameOver()
     {
         Debug.Log("💀 플레이어 사망... 게임 오버!");
-
-        // 게임 오버 패널 띄우기
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
+        if (gameOverPanel != null) gameOverPanel.SetActive(true);
     }
 
-    // [패널 버튼용] 게임 오버 패널의 '메인 메뉴로' 버튼에 연결할 함수
     public void OnClickReturnToMainMenu()
     {
-        // 1. 얄짤없이 DataManager의 데이터를 초기화합니다.
-        if (DataManager.Instance != null)
-        {
-            DataManager.Instance.ResetDataForNewRun();
-        }
-
-        // 2. 메인 메뉴 씬으로 쫓아냅니다.
+        if (DataManager.Instance != null) DataManager.Instance.ResetDataForNewRun();
         SceneManager.LoadScene("MainMenu");
     }
 
-    // [패널 버튼용] 전투 승리 후 보상을 고르고 맵으로 돌아갈 때 호출할 함수
     public void SaveAndReturnToMap()
     {
         if (DataManager.Instance != null)
         {
-            // 현재 내 스탯을 금고(DataManager)에 안전하게 저장합니다.
             DataManager.Instance.currentHp = hp;
             DataManager.Instance.maxHp = maxHp;
             DataManager.Instance.currentMana = mana;
-            DataManager.Instance.baseAttack = attack; // 상승한 기본 공격력 저장
-
-            // 스테이지 선택 씬으로 귀환!
-            DataManager.Instance.LoadStageSelectScene();
+            DataManager.Instance.baseAttack = attack;
+            DataManager.Instance.baseDefense = defense; // [추가 - ①] 영구 방어력 저장
+            DataManager.Instance.LoadStageSelectScene(); // [B-01] 내부에서 currentStage++ 처리
         }
         else
         {
@@ -157,25 +142,17 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
-    // ----------------------------------------------------
-    // [추가] 마나 스킬용 자원 소모 함수
-    // ----------------------------------------------------
     public bool UseMana(int amount)
     {
-        // 현재 마나가 충분하다면 마나를 깎고 true를 반환합니다.
         if (mana >= amount)
         {
             mana -= amount;
-            UpdateUI(); // 변경된 마나 UI 갱신
+            UpdateUI();
             return true;
         }
-
-        // 마나가 부족하면 튕겨냅니다.
         return false;
     }
 
-
-    // 현재 씬 재시작 (테스트용)
     public void RestartGame()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

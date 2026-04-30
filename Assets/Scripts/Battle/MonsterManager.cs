@@ -32,7 +32,9 @@ public class MonsterManager : MonoBehaviour
 
     void Awake()
     {
-        Instance = this;
+        // [수정 - S-01] 싱글톤 중복 체크 추가
+        if (Instance == null) { Instance = this; }
+        else { Destroy(gameObject); return; }
     }
 
     void Start()

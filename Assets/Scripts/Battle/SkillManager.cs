@@ -2,17 +2,18 @@
 
 public class SkillManager : MonoBehaviour
 {
+    // [수정 - S-01] 싱글톤 중복 체크 추가
     public static SkillManager Instance;
 
     [Header("타겟팅 상태")]
-    public SkillData currentTargetingSkill = null; // 현재 타겟팅 대기 중인 스킬
+    public SkillData currentTargetingSkill = null;
 
     void Awake()
     {
-        Instance = this;
+        if (Instance == null) { Instance = this; }
+        else { Destroy(gameObject); return; }
     }
 
-    // UI 스킬 버튼을 누르면 이 함수가 실행됩니다.
     public void CastSkill(SkillData skill)
     {
         if (PlayerManager.Instance.mana < skill.manaCost)
@@ -23,46 +24,54 @@ public class SkillManager : MonoBehaviour
 
         if (skill.requiresTarget)
         {
-            // 타겟팅 모드로 진입 (보드판 클릭을 기다림)
             currentTargetingSkill = skill;
-            Debug.Log($"🎯 [{skill.skillName}] 발동 대기! 파괴할 타일을 클릭하세요.");
-            // (추후 여기에 마우스 커서 모양을 바꾸는 코드를 넣으면 좋습니다)
+            Debug.Log($"🎯 [{skill.skillName}] 발동 대기! 타겟을 클릭하세요.");
         }
         else
         {
-            // 타겟팅이 필요 없는 즉발 스킬(리롤 등)은 마나를 빼고 즉시 실행!
             if (PlayerManager.Instance.UseMana(skill.manaCost))
-            {
                 ExecuteSkill(skill);
-            }
         }
     }
 
-    // 실제 스킬의 효과가 처리되는 곳입니다. (확장성이 핵심!)
     public void ExecuteSkill(SkillData skill, TileSlot targetSlot = null)
     {
         switch (skill.effect)
         {
-            // --- [제안 1] 스킬 구현 ---
             case SkillData.SkillEffect.RerollHand:
-                HandManager.Instance.DrawTiles(5); // 기존 패를 싹 날리고 5장 새로 드로우
+                HandManager.Instance.DrawTiles(5);
                 break;
 
             case SkillData.SkillEffect.DestroyTarget:
                 if (targetSlot != null && targetSlot.transform.childCount > 0)
                 {
-                    Destroy(targetSlot.transform.GetChild(0).gameObject); // UI 파괴
-                    GridManager.Instance.boardData[targetSlot.gridX, targetSlot.gridY] = null; // 데이터 파괴
-                    targetSlot.SetLock(0); // 혹시 잠긴 칸이라면 잠금도 해제
+                    Destroy(targetSlot.transform.GetChild(0).gameObject);
+                    GridManager.Instance.boardData[targetSlot.gridX, targetSlot.gridY] = null;
+                    targetSlot.SetLock(0);
                 }
                 break;
 
-                // --- [제안 2, 3] 추후 여기에 case만 추가하면 무한 확장 가능! ---
-                // case SkillData.SkillEffect.Heal: ...
-                // case SkillData.SkillEffect.SkipMonsterTurn: ...
+            // [수정 - B-05/⑥] 미구현 스킬: warning 출력으로 silent fail 방지
+            case SkillData.SkillEffect.MakeJoker:
+            case SkillData.SkillEffect.ManaShield:
+            case SkillData.SkillEffect.Heal:
+            case SkillData.SkillEffect.DirectDamage:
+            case SkillData.SkillEffect.SkipMonsterTurn:
+            case SkillData.SkillEffect.CleanseBoard:
+                Debug.LogWarning($"⚠️ [{skill.skillName}] 스킬 효과({skill.effect})는 아직 구현되지 않았습니다. 마나를 소모하지 않습니다.");
+                // 마나 환불: UseMana가 이미 호출된 경우를 대비해 되돌려 줍니다.
+                PlayerManager.Instance.mana += skill.manaCost;
+                PlayerManager.Instance.UpdateUI();
+                currentTargetingSkill = null;
+                return; // 로그만 남기고 종료 (스킬 발동 성공 메시지 출력 안 함)
+
+            default:
+                Debug.LogWarning($"⚠️ [{skill.skillName}] 알 수 없는 스킬 효과: {skill.effect}");
+                currentTargetingSkill = null;
+                return;
         }
 
         Debug.Log($"🌟 스킬 발동 성공! [{skill.skillName}]");
-        currentTargetingSkill = null; // 타겟팅 상태 해제
+        currentTargetingSkill = null;
     }
 }
