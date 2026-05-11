@@ -75,12 +75,20 @@ public class MonsterManager : MonoBehaviour
 
         if (currentHp == 0)
         {
-            Debug.Log("🎉 몬스터 처치 성공! RewardManager를 호출합니다.");
+            Debug.Log("🎉 몬스터 처치 성공!");
 
-            // [수정됨] PlayerManager의 패널을 직접 켜는 대신, 원래대로 RewardManager를 부릅니다.
-            if (RewardManager.Instance != null)
+            if (DataManager.Instance != null && DataManager.Instance.totalStageCount > 0 && DataManager.Instance.currentStage >= DataManager.Instance.totalStageCount)
             {
-                RewardManager.Instance.ShowRewardPopup();
+                Debug.Log($"Victory! Current stage: {DataManager.Instance.currentStage}, Total stages: {DataManager.Instance.totalStageCount}");
+                if (PlayerManager.Instance != null)
+                    PlayerManager.Instance.ShowVictoryPanel();
+                return;
+            }
+
+            // [수정됨] PlayerManager의 패널을 직접 켜는 대신, RewardUI를 통해 보상 선택을 표시합니다.
+            if (RewardUI.Instance != null)
+            {
+                RewardUI.Instance.Show();
             }
         }
     }

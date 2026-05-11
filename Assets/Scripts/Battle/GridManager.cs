@@ -136,7 +136,7 @@ public class GridManager : MonoBehaviour
         if (tilesToDestroy.Count > 0)
             StartCoroutine(ClearBingoTiles(tilesToDestroy));
         else
-            CheckBoardFull();
+            EvaluateBoardFull();
     }
 
     // ── 빙고 타일 파괴 및 보너스 지급 ────────────────────────
@@ -172,7 +172,11 @@ public class GridManager : MonoBehaviour
         if (bonusMana > 0) PlayerManager.Instance.AddStat(TileData.TileType.Mana, bonusMana);
 
         yield return new WaitForSeconds(0.1f);
-        CheckBoardFull();
+        if (IsBoardFull())
+        {
+            if (PlayerManager.Instance != null)
+                PlayerManager.Instance.GameOver();
+        }
     }
 
     // ── 보드 전체 초기화 (스테이지 전환 시) ──────────────────
@@ -192,15 +196,24 @@ public class GridManager : MonoBehaviour
     }
 
     // ── 보드 가득 참 체크 (게임오버) ──────────────────────────
-    private void CheckBoardFull()
+    private bool IsBoardFull()
     {
         for (int x = 0; x < width; x++)
             for (int y = 0; y < height; y++)
-                if (boardData[x, y] == null) return;
+                if (boardData[x, y] == null)
+                    return false;
 
-        Debug.Log("보드판이 가득 찼습니다! 게임 오버.");
-        if (PlayerManager.Instance != null && PlayerManager.Instance.gameOverPanel != null)
-            PlayerManager.Instance.gameOverPanel.SetActive(true);
+        return true;
+    }
+
+    private void EvaluateBoardFull()
+    {
+        if (IsBoardFull())
+        {
+            Debug.Log("보드판이 가득 찼습니다! 게임 오버.");
+            if (PlayerManager.Instance != null)
+                PlayerManager.Instance.GameOver();
+        }
     }
 
     // ── 기믹: 보드 셔플 ───────────────────────────────────────

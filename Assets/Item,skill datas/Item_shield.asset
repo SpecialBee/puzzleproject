@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57e3f6c5d7475d24f95a1fd3fc330233, type: 3}
   m_Name: Item_shield
   m_EditorClassIdentifier: 
-  itemName: sword
-  description: sword
+  itemName: Shield
+  description: Shield
   itemType: 0
   itemPrefab: {fileID: 5914724093564898705, guid: 9135e91e6ff81f549bd5a32b88af1547, type: 3}
   valueHP: 0

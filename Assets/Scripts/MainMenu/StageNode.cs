@@ -1,11 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
 public class StageNode : MonoBehaviour
 {
     [Header("이동할 씬 이름 세팅")]
     [Tooltip("여기에 이동하고 싶은 씬의 이름을 정확히 적어주세요.")]
-    public string targetSceneName;
+    public string targetSceneName = "BattleScene";
+
+    [Header("UI 연결 (선택)")]
+    public Button stageButton;
+    public TextMeshProUGUI stageLabel;
+    public GameObject lockedOverlay;
 
     [Header("로그라이크 데이터 연동 (선택사항)")]
     [Tooltip("이 버튼이 메인 메뉴의 '새 게임 시작' 버튼이라면 체크하세요.")]
@@ -14,9 +21,32 @@ public class StageNode : MonoBehaviour
     [Tooltip("이 버튼이 맵의 '전투 노드'라면, 이 노드의 스테이지 레벨(층수)을 적어주세요.")]
     public int stageLevel = 1;
 
+    [HideInInspector]
+    public bool isUnlocked = true;
+
+    public void SetStage(int stage, string sceneName, bool unlocked)
+    {
+        stageLevel = stage;
+        targetSceneName = sceneName;
+        isUnlocked = unlocked;
+
+        if (stageLabel != null)
+            stageLabel.text = $"STAGE {stageLevel}";
+        if (stageButton != null)
+            stageButton.interactable = unlocked;
+        if (lockedOverlay != null)
+            lockedOverlay.SetActive(!unlocked);
+    }
+
     // 버튼을 클릭했을 때 실행될 함수
     public void OnClickNode()
     {
+        if (!isUnlocked)
+        {
+            Debug.LogWarning($"🔒 스테이지 {stageLevel}은 잠겨 있습니다.");
+            return;
+        }
+
         if (string.IsNullOrEmpty(targetSceneName))
         {
             Debug.LogWarning("⚠️ 목적지 씬 이름이 인스펙터에 비어있습니다! 이름을 적어주세요.");

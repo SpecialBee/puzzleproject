@@ -9,6 +9,8 @@ public class DataManager : MonoBehaviour
 
     [Header("로그라이크 진행 데이터")]
     public int currentStage = 1;
+    public int maxUnlockedStage = 1;
+    public int totalStageCount = 1;
 
     [Header("플레이어 스탯 (유지용)")]
     public int maxHp = 100;
@@ -19,21 +21,21 @@ public class DataManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     // 1. 새로운 게임(런)을 시작할 때 초기화
     public void ResetDataForNewRun()
     {
         currentStage = 1;
+        maxUnlockedStage = 1;
         maxHp = 100;
         currentHp = maxHp;
         baseAttack = 0;
@@ -56,6 +58,7 @@ public class DataManager : MonoBehaviour
     public void LoadStageSelectScene()
     {
         currentStage++; // [B-01] 클리어한 스테이지를 넘어 다음 층으로 진행
+        maxUnlockedStage = Mathf.Max(maxUnlockedStage, currentStage);
         Debug.Log($"✅ 스테이지 {currentStage - 1} 클리어! 다음 목표: {currentStage}층");
         SceneManager.LoadScene("StageSelect");
     }

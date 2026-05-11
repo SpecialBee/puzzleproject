@@ -113,10 +113,33 @@ public class PlayerManager : MonoBehaviour
         UpdateUI();
     }
 
-    private void GameOver()
+    public void GameOver()
     {
         Debug.Log("💀 플레이어 사망... 게임 오버!");
-        if (gameOverPanel != null) gameOverPanel.SetActive(true);
+
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
+
+        if (DataManager.Instance != null)
+        {
+            DataManager.Instance.ResetDataForNewRun();
+        }
+
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    public void ShowVictoryPanel()
+    {
+        Debug.Log("🎉 게임 클리어! 승리 화면을 표시합니다.");
+        if (victoryPanel != null)
+            victoryPanel.SetActive(true);
+    }
+
+    public void OnClickVictoryConfirm()
+    {
+        if (DataManager.Instance != null)
+            DataManager.Instance.ResetDataForNewRun();
+        SceneManager.LoadScene("MainMenu");
     }
 
     public void OnClickReturnToMainMenu()
@@ -132,8 +155,8 @@ public class PlayerManager : MonoBehaviour
             DataManager.Instance.currentHp = hp;
             DataManager.Instance.maxHp = maxHp;
             DataManager.Instance.currentMana = mana;
-            DataManager.Instance.baseAttack = attack;
-            DataManager.Instance.baseDefense = defense; // [추가 - ①] 영구 방어력 저장
+            // attack/defense는 임시 스탯이므로 다음 전투로 그대로 이어지지 않도록 저장하지 않습니다.
+            // 영구 공격력/방어력은 아이템으로만 증가하며, DataManager.baseAttack / baseDefense에 이미 누적됩니다.
             DataManager.Instance.LoadStageSelectScene(); // [B-01] 내부에서 currentStage++ 처리
         }
         else
